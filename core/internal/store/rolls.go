@@ -78,6 +78,23 @@ func (s *FirestoreRollStore) ListRolls(ctx context.Context, groupID string, opts
 }
 
 func (s *FirestoreRollStore) GetRollStats(ctx context.Context, groupID string) (map[string]int, error) {
+	doc, err := s.client.Collection("groups").Doc(groupID).Collection("meta").Doc("roll_stats").Get(ctx)
+	if err != nil {
+		// Fall back to scanning all rolls if stats doc doesn't exist yet
+		return s.getRollStatsLegacy(ctx, groupID)
+	}
+
+	data := doc.Data()
+	stats := make(map[string]int, len(data))
+	for k, v := range data {
+		if count, ok := v.(int64); ok {
+			stats[k] = int(count)
+		}
+	}
+	return stats, nil
+}
+
+func (s *FirestoreRollStore) getRollStatsLegacy(ctx context.Context, groupID string) (map[string]int, error) {
 	docs, err := s.rollsCol(groupID).Documents(ctx).GetAll()
 	if err != nil {
 		return nil, err
@@ -91,4 +108,46 @@ func (s *FirestoreRollStore) GetRollStats(ctx context.Context, groupID string) (
 		stats[r.WinnerID]++
 	}
 	return stats, nil
+}
+
+func (s *FirestoreRollStore) IncrementWinCount(ctx context.Context, groupID, memberID string) error {
+	ref := s.client.Collection("groups").Doc(groupID).Collection("meta").Doc("roll_stats")
+	_, err := ref.Set(ctx, map[string]interface{}{
+		memberID: firestore.Increment(1),
+	}, firestore.MergeAll)
+	return err
+}
+
+// ExecuteRollTx atomically creates a roll session, batch-updates member stats,
+// and increments the winner's win counter in a single Firestore transaction.
+func (s *FirestoreRollStore) ExecuteRollTx(ctx context.Context, groupID string, roll *models.RollSession, members []*models.Member) (string, error) {
+	var rollID string
+	err := s.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		// 1. Create roll document
+		rollRef := s.rollsCol(groupID).NewDoc()
+		rollID = rollRef.ID
+		roll.ID = rollID
+		if err := tx.Set(rollRef, roll); err != nil {
+			return err
+		}
+
+		// 2. Update all member stats
+		for _, m := range members {
+			memberRef := s.client.Collection("groups").Doc(groupID).Collection("members").Doc(m.ID)
+			if err := tx.Set(memberRef, m, firestore.MergeAll); err != nil {
+				return err
+			}
+		}
+
+		// 3. Increment win counter
+		statsRef := s.client.Collection("groups").Doc(groupID).Collection("meta").Doc("roll_stats")
+		if err := tx.Set(statsRef, map[string]interface{}{
+			roll.WinnerID: firestore.Increment(1),
+		}, firestore.MergeAll); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	return rollID, err
 }

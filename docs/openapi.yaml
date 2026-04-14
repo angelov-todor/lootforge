@@ -1,0 +1,525 @@
+openapi: 3.1.0
+info:
+  title: LootForge API
+  version: 0.1.0
+  description: Fair loot distribution system for gaming groups.
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Firebase ID Token
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        photoURL:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: string
+          format: date-time
+
+    StrategyConfig:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [pure_random, weighted_luck, round_robin, dkp]
+        weightedLuck:
+          type: object
+          properties:
+            increment:
+              type: integer
+            decrement:
+              type: integer
+            defaultLuck:
+              type: integer
+        dkp:
+          type: object
+          properties:
+            winCost:
+              type: integer
+
+    Group:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        ownerID:
+          type: string
+        strategy:
+          $ref: '#/components/schemas/StrategyConfig'
+        createdAt:
+          type: string
+          format: date-time
+
+    Member:
+      type: object
+      properties:
+        id:
+          type: string
+        groupID:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        luck:
+          type: integer
+        priority:
+          type: integer
+        points:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    RollSession:
+      type: object
+      properties:
+        id:
+          type: string
+        groupID:
+          type: string
+        strategy:
+          $ref: '#/components/schemas/StrategyConfig'
+        participantIDs:
+          type: array
+          items:
+            type: string
+        winnerID:
+          type: string
+        item:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    RollResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        winner:
+          $ref: '#/components/schemas/Member'
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+        item:
+          type: string
+        strategy:
+          $ref: '#/components/schemas/StrategyConfig'
+
+    Invite:
+      type: object
+      properties:
+        token:
+          type: string
+        groupID:
+          type: string
+        createdBy:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+
+  /api/me:
+    get:
+      summary: Get current user
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+
+  /api/groups:
+    get:
+      summary: List groups for current user
+      responses:
+        '200':
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Group'
+    post:
+      summary: Create a group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, strategy]
+              properties:
+                name:
+                  type: string
+                strategy:
+                  $ref: '#/components/schemas/StrategyConfig'
+      responses:
+        '201':
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          description: Bad request
+
+  /api/groups/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get a group
+      responses:
+        '200':
+          description: Group details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+    put:
+      summary: Update a group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, strategy]
+              properties:
+                name:
+                  type: string
+                strategy:
+                  $ref: '#/components/schemas/StrategyConfig'
+      responses:
+        '200':
+          description: Group updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '403':
+          description: Forbidden
+    delete:
+      summary: Delete a group (owner only)
+      responses:
+        '204':
+          description: Deleted
+        '403':
+          description: Forbidden
+
+  /api/groups/{gid}/members:
+    parameters:
+      - name: gid
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: List members of a group
+      responses:
+        '200':
+          description: List of members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Member'
+    post:
+      summary: Add a member to a group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                role:
+                  type: string
+      responses:
+        '201':
+          description: Member added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+
+  /api/groups/{gid}/members/{id}:
+    parameters:
+      - name: gid
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Update a member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                role:
+                  type: string
+      responses:
+        '200':
+          description: Member updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+    delete:
+      summary: Delete a member
+      responses:
+        '204':
+          description: Deleted
+
+  /api/groups/{gid}/members/{id}/points:
+    parameters:
+      - name: gid
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    patch:
+      summary: Adjust member DKP points
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [points]
+              properties:
+                points:
+                  type: integer
+      responses:
+        '200':
+          description: Points adjusted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+
+  /api/groups/{gid}/rolls:
+    parameters:
+      - name: gid
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Execute a loot roll
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [participantIDs]
+              properties:
+                participantIDs:
+                  type: array
+                  items:
+                    type: string
+                item:
+                  type: string
+      responses:
+        '200':
+          description: Roll result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RollResponse'
+    get:
+      summary: List roll history
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: member
+          in: query
+          schema:
+            type: string
+        - name: item
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated rolls
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rolls:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RollSession'
+                  nextCursor:
+                    type: string
+
+  /api/groups/{gid}/rolls/stats:
+    parameters:
+      - name: gid
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get roll win statistics
+      responses:
+        '200':
+          description: Win counts keyed by member ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wins:
+                    type: object
+                    additionalProperties:
+                      type: integer
+
+  /api/groups/{gid}/invites:
+    parameters:
+      - name: gid
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Create an invite link (admin/owner)
+      responses:
+        '201':
+          description: Invite created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invite'
+        '403':
+          description: Forbidden
+
+  /api/invites/{token}/accept:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Accept an invite and join the group
+      responses:
+        '200':
+          description: Group joined
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '404':
+          description: Invite not found
+        '409':
+          description: Already a member
+        '410':
+          description: Invite expired
+
+  /api/invites/{token}:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Revoke an invite (admin/owner)
+      responses:
+        '204':
+          description: Invite revoked
+        '403':
+          description: Forbidden
+        '404':
+          description: Invite not found

@@ -38,6 +38,7 @@ type RollStore interface {
 	CreateRoll(ctx context.Context, groupID string, roll *models.RollSession) (string, error)
 	ListRolls(ctx context.Context, groupID string, opts ListRollsOpts) ([]*models.RollSession, string, error)
 	GetRollStats(ctx context.Context, groupID string) (map[string]int, error)
+	IncrementWinCount(ctx context.Context, groupID, memberID string) error
 }
 
 type ListRollsOpts struct {
@@ -51,4 +52,11 @@ type InviteStore interface {
 	CreateInvite(ctx context.Context, invite *models.Invite) error
 	GetInvite(ctx context.Context, token string) (*models.Invite, error)
 	DeleteInvite(ctx context.Context, token string) error
+}
+
+// RollTxStore provides transactional roll persistence.
+// Implementations atomically create the roll, update member stats,
+// and increment the win counter in a single transaction.
+type RollTxStore interface {
+	ExecuteRollTx(ctx context.Context, groupID string, roll *models.RollSession, members []*models.Member) (string, error)
 }

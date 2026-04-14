@@ -15,12 +15,12 @@ import (
 
 // mockRollStore implements store.RollStore for tests.
 type mockRollStore struct {
-	sessions     []*models.RollSession
-	stats        map[string]int
-	createErr    error
-	listErr      error
-	statsErr     error
-	nextID       string
+	sessions  []*models.RollSession
+	stats     map[string]int
+	createErr error
+	listErr   error
+	statsErr  error
+	nextID    string
 }
 
 func newMockRollStore() *mockRollStore {
@@ -64,6 +64,11 @@ func (m *mockRollStore) GetRollStats(_ context.Context, groupID string) (map[str
 		}
 	}
 	return result, nil
+}
+
+func (m *mockRollStore) IncrementWinCount(_ context.Context, _ string, memberID string) error {
+	m.stats[memberID]++
+	return nil
 }
 
 func setupRollHandler() (*RollHandler, *mockMemberStore, *mockRollStore, *mockRoleStore, *mockGroupStore) {

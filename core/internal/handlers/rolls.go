@@ -19,6 +19,7 @@ type RollHandler struct {
 	rollStore   store.RollStore
 	roleStore   store.RoleStore
 	groupStore  store.GroupStore
+	rollTxStore store.RollTxStore // optional; if set, used for atomic roll persistence
 }
 
 func NewRollHandler(
@@ -35,16 +36,21 @@ func NewRollHandler(
 	}
 }
 
+// SetRollTxStore sets an optional transactional store for atomic roll persistence.
+func (h *RollHandler) SetRollTxStore(txStore store.RollTxStore) {
+	h.rollTxStore = txStore
+}
+
 type RollRequest struct {
 	ParticipantIDs []string `json:"participantIDs"`
 	Item           string   `json:"item"`
 }
 
 type RollResponse struct {
-	ID           string               `json:"id"`
-	Winner       *models.Member       `json:"winner"`
-	Participants []*models.Member     `json:"participants"`
-	Item         string               `json:"item"`
+	ID           string                `json:"id"`
+	Winner       *models.Member        `json:"winner"`
+	Participants []*models.Member      `json:"participants"`
+	Item         string                `json:"item"`
 	Strategy     models.StrategyConfig `json:"strategy"`
 }
 
@@ -151,18 +157,33 @@ func (h *RollHandler) ExecuteRoll(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:      time.Now(),
 	}
 
-	sessionID, err := h.rollStore.CreateRoll(r.Context(), gid, session)
-	if err != nil {
-		httputil.WriteError(w, 500, "failed to save roll session")
-		return
-	}
-	session.ID = sessionID
-
-	// 11. BatchUpdate members with adjusted stats
 	allAdjusted := append([]*models.Member{winner}, losers...)
-	if err := h.memberStore.BatchUpdateMembers(r.Context(), gid, allAdjusted); err != nil {
-		httputil.WriteError(w, 500, "failed to persist member updates")
-		return
+
+	// Use transactional store if available for atomic persistence
+	if h.rollTxStore != nil {
+		sessionID, err := h.rollTxStore.ExecuteRollTx(r.Context(), gid, session, allAdjusted)
+		if err != nil {
+			httputil.WriteError(w, 500, "failed to persist roll")
+			return
+		}
+		session.ID = sessionID
+	} else {
+		sessionID, err := h.rollStore.CreateRoll(r.Context(), gid, session)
+		if err != nil {
+			httputil.WriteError(w, 500, "failed to save roll session")
+			return
+		}
+		session.ID = sessionID
+
+		if err := h.rollStore.IncrementWinCount(r.Context(), gid, winnerID); err != nil {
+			httputil.WriteError(w, 500, "failed to update stats")
+			return
+		}
+
+		if err := h.memberStore.BatchUpdateMembers(r.Context(), gid, allAdjusted); err != nil {
+			httputil.WriteError(w, 500, "failed to persist member updates")
+			return
+		}
 	}
 
 	// 12. Return response

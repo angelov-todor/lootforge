@@ -17,6 +17,7 @@ type Deps struct {
 	MemberStore store.MemberStore
 	RollStore   store.RollStore
 	InviteStore store.InviteStore
+	RollTxStore store.RollTxStore // optional; enables transactional roll persistence
 }
 
 func New(deps Deps) http.Handler {
@@ -26,6 +27,10 @@ func New(deps Deps) http.Handler {
 	groupH := handlers.NewGroupHandler(deps.GroupStore, deps.RoleStore)
 	memberH := handlers.NewMemberHandler(deps.MemberStore, deps.RoleStore)
 	rollH := handlers.NewRollHandler(deps.MemberStore, deps.RollStore, deps.RoleStore, deps.GroupStore)
+	if deps.RollTxStore != nil {
+		rollH.SetRollTxStore(deps.RollTxStore)
+	}
+	inviteH := handlers.NewInviteHandler(deps.InviteStore, deps.RoleStore, deps.GroupStore, deps.MemberStore)
 
 	// Protected routes
 	protected := http.NewServeMux()
@@ -47,6 +52,10 @@ func New(deps Deps) http.Handler {
 	protected.HandleFunc("GET /api/groups/{gid}/rolls", rollH.ListRolls)
 	protected.HandleFunc("GET /api/groups/{gid}/rolls/stats", rollH.GetStats)
 
+	protected.HandleFunc("POST /api/groups/{gid}/invites", inviteH.Create)
+	protected.HandleFunc("POST /api/invites/{token}/accept", inviteH.Accept)
+	protected.HandleFunc("DELETE /api/invites/{token}", inviteH.Revoke)
+
 	authed := middleware.Auth(deps.Verifier)(protected)
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -59,5 +68,6 @@ func New(deps Deps) http.Handler {
 
 	_ = mux // mux is not directly used; all routing is via handler chain
 
-	return middleware.Logging(middleware.CORS(handler))
+	rl := middleware.NewRateLimiter(20, 40) // 20 req/s per IP, burst 40
+	return middleware.Logging(middleware.CORS(rl.Middleware(handler)))
 }
