@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -36,6 +37,7 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.userStore.UpsertUser(r.Context(), user); err != nil {
+		log.Printf("ERROR UpsertUser uid=%s: %v", authUser.UID, err)
 		httputil.WriteError(w, 500, "failed to sync user")
 		return
 	}
