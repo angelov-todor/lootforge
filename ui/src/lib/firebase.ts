@@ -1,10 +1,11 @@
-import { initializeApp, getApps } from "firebase/app";
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
   signOut as fbSignOut,
   onAuthStateChanged as fbOnAuthStateChanged,
+  type Auth,
   type User,
 } from "firebase/auth";
 
@@ -14,26 +15,34 @@ const firebaseConfig = {
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
 };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const auth = getAuth(app);
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
 const googleProvider = new GoogleAuthProvider();
 
+function getFirebaseAuth(): Auth {
+  if (!auth) {
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    auth = getAuth(app);
+  }
+  return auth;
+}
+
 export async function signInWithGoogle() {
-  return signInWithPopup(auth, googleProvider);
+  return signInWithPopup(getFirebaseAuth(), googleProvider);
 }
 
 export async function signOutUser() {
-  return fbSignOut(auth);
+  return fbSignOut(getFirebaseAuth());
 }
 
 export function onAuthStateChanged(callback: (user: User | null) => void) {
-  return fbOnAuthStateChanged(auth, callback);
+  return fbOnAuthStateChanged(getFirebaseAuth(), callback);
 }
 
 export async function getIdToken(): Promise<string | null> {
-  const user = auth.currentUser;
+  const user = getFirebaseAuth().currentUser;
   if (!user) return null;
   return user.getIdToken();
 }
 
-export { auth };
+export { getFirebaseAuth as auth };
