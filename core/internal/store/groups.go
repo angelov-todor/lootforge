@@ -61,7 +61,7 @@ func (s *FirestoreGroupStore) ListGroupsForUser(ctx context.Context, userID stri
 }
 
 func (s *FirestoreGroupStore) UpdateGroup(ctx context.Context, group *models.Group) error {
-	_, err := s.client.Collection("groups").Doc(group.ID).Set(ctx, group, firestore.MergeAll)
+	_, err := s.client.Collection("groups").Doc(group.ID).Set(ctx, group)
 	return err
 }
 

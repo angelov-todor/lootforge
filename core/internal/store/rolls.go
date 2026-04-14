@@ -134,7 +134,7 @@ func (s *FirestoreRollStore) ExecuteRollTx(ctx context.Context, groupID string, 
 		// 2. Update all member stats
 		for _, m := range members {
 			memberRef := s.client.Collection("groups").Doc(groupID).Collection("members").Doc(m.ID)
-			if err := tx.Set(memberRef, m, firestore.MergeAll); err != nil {
+			if err := tx.Set(memberRef, m); err != nil {
 				return err
 			}
 		}

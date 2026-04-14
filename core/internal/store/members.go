@@ -68,7 +68,7 @@ func (s *FirestoreMemberStore) GetMember(ctx context.Context, groupID, memberID 
 }
 
 func (s *FirestoreMemberStore) UpdateMember(ctx context.Context, groupID string, member *models.Member) error {
-	_, err := s.membersCol(groupID).Doc(member.ID).Set(ctx, member, firestore.MergeAll)
+	_, err := s.membersCol(groupID).Doc(member.ID).Set(ctx, member)
 	return err
 }
 
@@ -81,7 +81,7 @@ func (s *FirestoreMemberStore) BatchUpdateMembers(ctx context.Context, groupID s
 	batch := s.client.Batch()
 	for _, m := range members {
 		ref := s.membersCol(groupID).Doc(m.ID)
-		batch.Set(ref, m, firestore.MergeAll)
+		batch.Set(ref, m)
 	}
 	_, err := batch.Commit(ctx)
 	return err

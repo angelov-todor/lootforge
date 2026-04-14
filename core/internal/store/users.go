@@ -16,7 +16,12 @@ func NewFirestoreUserStore(client *firestore.Client) *FirestoreUserStore {
 }
 
 func (s *FirestoreUserStore) UpsertUser(ctx context.Context, user *models.User) error {
-	_, err := s.client.Collection("users").Doc(user.ID).Set(ctx, user, firestore.MergeAll)
+	_, err := s.client.Collection("users").Doc(user.ID).Set(ctx, map[string]interface{}{
+		"email":       user.Email,
+		"displayName": user.DisplayName,
+		"photoURL":    user.PhotoURL,
+		"lastLoginAt": user.LastLoginAt,
+	}, firestore.MergeAll)
 	return err
 }
 
