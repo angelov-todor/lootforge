@@ -85,17 +85,17 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v2
 
       - name: Configure Docker
-        run: gcloud auth configure-docker
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev
 
       - name: Build and push backend
         run: |
-          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/lootforge-core core/
-          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/lootforge-core
+          docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/lootforge/core core/
+          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/lootforge/core
 
       - name: Deploy backend to Cloud Run
         run: |
           gcloud run deploy lootforge-core \
-            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/lootforge-core \
+            --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/lootforge/core \
             --region us-central1 \
             --platform managed \
             --allow-unauthenticated \
@@ -111,12 +111,6 @@ jobs:
           URL=$(gcloud run services describe lootforge-core --region us-central1 --format 'value(status.url)')
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
-      - name: Update backend CORS
-        run: |
-          gcloud run services update lootforge-core \
-            --region us-central1 \
-            --update-env-vars "CORS_ORIGINS=${{ steps.ui-url.outputs.url || '*' }}"
-
       - name: Build and push frontend
         run: |
           docker build \
@@ -124,13 +118,13 @@ jobs:
             --build-arg NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }} \
             --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }} \
             --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.GCP_PROJECT_ID }} \
-            -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/lootforge-ui ui/
-          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/lootforge-ui
+            -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/lootforge/ui ui/
+          docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/lootforge/ui
 
       - name: Deploy frontend to Cloud Run
         run: |
           gcloud run deploy lootforge-ui \
-            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/lootforge-ui \
+            --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/lootforge/ui \
             --region us-central1 \
             --platform managed \
             --allow-unauthenticated \
