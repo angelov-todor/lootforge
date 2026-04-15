@@ -16,12 +16,16 @@ type WeightedLuckStrategy struct {
 func (s *WeightedLuckStrategy) Roll(participants []*models.Member) (string, error) {
 	var pool []string
 	for _, m := range participants {
-		for i := 0; i < m.Luck; i++ {
+		weight := m.Luck + 1 // base weight of 1 so luck-0 members can still win
+		if weight < 1 {
+			weight = 1
+		}
+		for i := 0; i < weight; i++ {
 			pool = append(pool, m.ID)
 		}
 	}
 	if len(pool) == 0 {
-		return "", errors.New("no eligible participants (all have zero or negative luck)")
+		return "", errors.New("no eligible participants")
 	}
 
 	// Fisher-Yates shuffle with crypto/rand
