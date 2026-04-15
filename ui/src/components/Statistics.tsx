@@ -98,7 +98,7 @@ export function Statistics() {
               <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#94a3b8" }} />
               <Tooltip
-                cursor={{ fill: "rgba(124,58,237,0.15)" }}
+                cursor={{ fill: "rgba(99,102,241,0.15)" }}
                 contentStyle={{
                   backgroundColor: "#1e293b",
                   border: "1px solid #334155",
@@ -106,7 +106,7 @@ export function Statistics() {
                   color: "#e2e8f0",
                 }}
               />
-              <Bar dataKey="wins" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="wins" fill="#6366f1" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </>

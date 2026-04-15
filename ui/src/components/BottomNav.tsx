@@ -64,13 +64,13 @@ export function BottomNav() {
                   width: 56,
                   height: 56,
                   borderRadius: "50%",
-                  background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+                  background: "linear-gradient(135deg, #6366f1, #818cf8)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   boxShadow: active
-                    ? "0 4px 20px rgba(124,58,237,0.5)"
-                    : "0 4px 15px rgba(124,58,237,0.3)",
+                    ? "0 4px 20px rgba(99,102,241,0.5)"
+                    : "0 4px 15px rgba(99,102,241,0.3)",
                 }}
               >
                 <Icon sx={{ fontSize: 28, color: "white" }} />

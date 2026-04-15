@@ -36,7 +36,7 @@ export function WinnerOverlay({ result, onPass, onDone, loading }: WinnerOverlay
       open
       sx={{
         zIndex: 1300,
-        background: "radial-gradient(ellipse at center, rgba(124,58,237,0.35) 0%, rgba(15,23,42,0.98) 60%)",
+        background: "radial-gradient(ellipse at center, rgba(99,102,241,0.35) 0%, rgba(15,23,42,0.98) 60%)",
         flexDirection: "column",
         gap: 1,
       }}
@@ -81,7 +81,7 @@ export function WinnerOverlay({ result, onPass, onDone, loading }: WinnerOverlay
           sx={{
             fontWeight: "bold",
             color: "white",
-            textShadow: "0 0 30px rgba(124,58,237,0.5)",
+            textShadow: "0 0 30px rgba(99,102,241,0.5)",
             my: 1,
           }}
         >

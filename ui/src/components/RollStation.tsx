@@ -135,7 +135,7 @@ export function RollStation() {
             width: 140,
             height: 140,
             borderRadius: "50%",
-            background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+            background: "linear-gradient(135deg, #6366f1, #818cf8)",
             border: "none",
             cursor: selected.size === 0 || loading ? "not-allowed" : "pointer",
             opacity: selected.size === 0 || loading ? 0.5 : 1,
@@ -143,11 +143,11 @@ export function RollStation() {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 0 40px rgba(124,58,237,0.3)",
+            boxShadow: "0 0 40px rgba(99,102,241,0.3)",
             transition: "transform 0.15s, box-shadow 0.15s",
             "&:hover:not(:disabled)": {
               transform: "scale(1.05)",
-              boxShadow: "0 0 50px rgba(124,58,237,0.5)",
+              boxShadow: "0 0 50px rgba(99,102,241,0.5)",
             },
             "&:active:not(:disabled)": {
               transform: "scale(0.95)",

@@ -9,11 +9,15 @@ import {
   IconButton,
   Snackbar,
   Alert,
+  Switch,
   TextField,
   Typography,
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import LightModeIcon from "@mui/icons-material/LightMode";
 import { useGroup } from "@/components/GroupContext";
+import { useThemeMode } from "@/components/ThemeContext";
 import { api } from "@/lib/api";
 import type { Invite } from "@/types";
 
@@ -22,6 +26,7 @@ export default function SettingsPage() {
   const [invite, setInvite] = useState<Invite | null>(null);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { mode, toggleTheme } = useThemeMode();
 
   if (!selectedGroup) {
     return (
@@ -61,6 +66,19 @@ export default function SettingsPage() {
       <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
         Settings
       </Typography>
+
+      {/* Theme toggle */}
+      <Card variant="outlined" sx={{ mb: 2 }}>
+        <CardContent sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", py: 1.5, "&:last-child": { pb: 1.5 } }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            {mode === "dark" ? <DarkModeIcon /> : <LightModeIcon />}
+            <Typography>
+              {mode === "dark" ? "Dark" : "Light"} Mode
+            </Typography>
+          </Box>
+          <Switch checked={mode === "dark"} onChange={toggleTheme} />
+        </CardContent>
+      </Card>
 
       <Card variant="outlined" sx={{ mb: 2 }}>
         <CardContent>
