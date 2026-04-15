@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v14-appRouter";
 import { ThemeContextProvider } from "@/components/ThemeContext";
-import { AuthProvider } from "@/components/AuthProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,10 +11,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://apis.google.com" />
+        <link rel="preconnect" href="https://www.googleapis.com" />
+      </head>
       <body>
         <AppRouterCacheProvider>
           <ThemeContextProvider>
-            <AuthProvider>{children}</AuthProvider>
+            {children}
           </ThemeContextProvider>
         </AppRouterCacheProvider>
       </body>

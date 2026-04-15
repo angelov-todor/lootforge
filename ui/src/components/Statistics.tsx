@@ -1,9 +1,36 @@
 "use client";
 import { useMemo } from "react";
 import { Box, Card, CardContent, CircularProgress, Typography } from "@mui/material";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import dynamic from "next/dynamic";
 import { useStats } from "@/hooks/useStats";
 import { useMembers } from "@/hooks/useMembers";
+
+const RechartsBar = dynamic(
+  () => import("recharts").then((mod) => {
+    const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } = mod;
+    return {
+      default: ({ data, primaryColor }: { data: { name: string; wins: number }[]; primaryColor: string }) => (
+        <ResponsiveContainer width="100%" height={250}>
+          <BarChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 8 }}>
+            <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#94a3b8" }} />
+            <Tooltip
+              cursor={{ fill: `${primaryColor}26` }}
+              contentStyle={{
+                backgroundColor: "#1e293b",
+                border: "1px solid #334155",
+                borderRadius: 8,
+                color: "#e2e8f0",
+              }}
+            />
+            <Bar dataKey="wins" fill={primaryColor} radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      ),
+    };
+  }),
+  { ssr: false, loading: () => <div style={{ height: 250 }} /> }
+);
 
 function stdDev(values: number[]): number {
   if (values.length === 0) return 0;
@@ -93,22 +120,7 @@ export function Statistics() {
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
             Wins per Member
           </Typography>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 8 }}>
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#94a3b8" }} />
-              <Tooltip
-                cursor={{ fill: "rgba(99,102,241,0.15)" }}
-                contentStyle={{
-                  backgroundColor: "#1e293b",
-                  border: "1px solid #334155",
-                  borderRadius: 8,
-                  color: "#e2e8f0",
-                }}
-              />
-              <Bar dataKey="wins" fill="#6366f1" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <RechartsBar data={chartData} primaryColor="#6366f1" />
         </>
       )}
     </Box>

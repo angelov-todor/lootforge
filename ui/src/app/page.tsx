@@ -1,25 +1,43 @@
 "use client";
-export const dynamic = "force-dynamic";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Button, CircularProgress } from "@mui/material";
 import GoogleIcon from "@mui/icons-material/Google";
-import { useAuth } from "@/components/AuthProvider";
 import { Logo } from "@/components/Logo";
 
 export default function LoginPage() {
-  const { user, loading, signIn } = useAuth();
   const router = useRouter();
+  const [checking, setChecking] = useState(true);
+  const [signingIn, setSigningIn] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) {
-      router.replace("/dashboard");
-    }
-  }, [user, loading, router]);
+    // Lazy check auth status — don't block first paint
+    import("@/lib/firebase").then(({ onAuthStateChanged }) => {
+      const unsub = onAuthStateChanged((user) => {
+        if (user) {
+          router.replace("/dashboard");
+        } else {
+          setChecking(false);
+        }
+        unsub();
+      });
+    });
+  }, [router]);
 
-  if (loading) {
+  const handleSignIn = async () => {
+    setSigningIn(true);
+    try {
+      const { signInWithGoogle } = await import("@/lib/firebase");
+      await signInWithGoogle();
+      router.replace("/dashboard");
+    } catch {
+      setSigningIn(false);
+    }
+  };
+
+  if (checking) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: "linear-gradient(135deg, #0f1117 0%, #1a1d2e 100%)" }}>
         <CircularProgress />
       </Box>
     );
@@ -33,7 +51,7 @@ export default function LoginPage() {
         justifyContent: "center",
         alignItems: "center",
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
+        background: "linear-gradient(135deg, #0f1117 0%, #1a1d2e 100%)",
         gap: 4,
         px: 3,
       }}
@@ -43,10 +61,11 @@ export default function LoginPage() {
         variant="contained"
         size="large"
         startIcon={<GoogleIcon />}
-        onClick={signIn}
+        onClick={handleSignIn}
+        disabled={signingIn}
         sx={{ py: 1.5, px: 4, maxWidth: 320, width: "100%" }}
       >
-        Sign in with Google
+        {signingIn ? "Signing in..." : "Sign in with Google"}
       </Button>
     </Box>
   );
