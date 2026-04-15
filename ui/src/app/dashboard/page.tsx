@@ -2,14 +2,9 @@
 export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Box, Accordion, AccordionSummary, AccordionDetails, Typography, Snackbar, Alert } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { GroupProvider, useGroup } from "@/components/GroupContext";
-import { TopBar } from "@/components/TopBar";
-import { MembersPanel } from "@/components/MembersPanel";
+import { Snackbar, Alert } from "@mui/material";
+import { useGroup } from "@/components/GroupContext";
 import { RollStation } from "@/components/RollStation";
-import { RollHistory } from "@/components/RollHistory";
-import { Statistics } from "@/components/Statistics";
 import { api } from "@/lib/api";
 
 function InviteAcceptor() {
@@ -21,7 +16,6 @@ function InviteAcceptor() {
     const token = searchParams.get("invite");
     if (!token) return;
 
-    // Remove invite param from URL without reload
     const url = new URL(window.location.href);
     url.searchParams.delete("invite");
     window.history.replaceState({}, "", url.pathname);
@@ -44,53 +38,11 @@ function InviteAcceptor() {
   );
 }
 
-function DashboardContent() {
-  return (
-    <>
-      <TopBar />
-      <InviteAcceptor />
-      <Box sx={{ maxWidth: 1200, mx: "auto", p: 2 }}>
-        <Accordion defaultExpanded>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="h6">Members</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <MembersPanel />
-          </AccordionDetails>
-        </Accordion>
-        <Accordion defaultExpanded>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="h6">Roll Station</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <RollStation />
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="h6">Roll History</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <RollHistory />
-          </AccordionDetails>
-        </Accordion>
-        <Accordion>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="h6">Statistics</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Statistics />
-          </AccordionDetails>
-        </Accordion>
-      </Box>
-    </>
-  );
-}
-
 export default function DashboardPage() {
   return (
-    <GroupProvider>
-      <DashboardContent />
-    </GroupProvider>
+    <>
+      <InviteAcceptor />
+      <RollStation />
+    </>
   );
 }
