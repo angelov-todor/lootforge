@@ -98,6 +98,7 @@ export function Statistics() {
               <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#94a3b8" }} />
               <Tooltip
+                cursor={{ fill: "rgba(124,58,237,0.15)" }}
                 contentStyle={{
                   backgroundColor: "#1e293b",
                   border: "1px solid #334155",
