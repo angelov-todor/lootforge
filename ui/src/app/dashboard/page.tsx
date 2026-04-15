@@ -1,6 +1,6 @@
 "use client";
 export const dynamic = "force-dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Snackbar, Alert } from "@mui/material";
 import { useGroup } from "@/components/GroupContext";
@@ -41,7 +41,9 @@ function InviteAcceptor() {
 export default function DashboardPage() {
   return (
     <>
-      <InviteAcceptor />
+      <Suspense fallback={null}>
+        <InviteAcceptor />
+      </Suspense>
       <RollStation />
     </>
   );

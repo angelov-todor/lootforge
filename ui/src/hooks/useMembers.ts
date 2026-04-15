@@ -9,15 +9,18 @@ export function useMembers() {
   const { selectedGroup } = useGroup();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const refreshMembers = useCallback(async () => {
     if (!selectedGroup) return;
+    setError(null);
     setLoading(true);
     try {
       const data = await api.get<Member[]>(`/api/groups/${selectedGroup.id}/members`);
       setMembers(data || []);
     } catch (e) {
       console.error("Failed to fetch members", e);
+      setError("Failed to load members");
     } finally {
       setLoading(false);
     }
@@ -50,5 +53,5 @@ export function useMembers() {
     saveAs(blob, `lootforge-members-${selectedGroup?.name || "export"}.json`);
   };
 
-  return { members, loading, addMember, updateMember, deleteMember, refreshMembers, exportMembers };
+  return { members, loading, error, addMember, updateMember, deleteMember, refreshMembers, exportMembers };
 }

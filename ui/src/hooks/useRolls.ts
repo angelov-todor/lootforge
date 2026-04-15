@@ -8,9 +8,11 @@ export function useRolls() {
   const { selectedGroup } = useGroup();
   const [rollResult, setRollResult] = useState<RollResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const executeRoll = async (participantIDs: string[], item: string) => {
     if (!selectedGroup) return;
+    setError(null);
     setLoading(true);
     try {
       const result = await api.post<RollResponse>(
@@ -18,6 +20,9 @@ export function useRolls() {
         { participantIDs, item }
       );
       setRollResult(result);
+    } catch (e) {
+      console.error("Failed to execute roll", e);
+      setError("Failed to execute roll");
     } finally {
       setLoading(false);
     }
@@ -25,5 +30,5 @@ export function useRolls() {
 
   const clearResult = () => setRollResult(null);
 
-  return { executeRoll, rollResult, loading, clearResult };
+  return { executeRoll, rollResult, loading, error, clearResult };
 }

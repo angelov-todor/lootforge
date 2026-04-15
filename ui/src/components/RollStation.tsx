@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Box, Chip, CircularProgress, TextField, Typography } from "@mui/material";
 import { useMembers } from "@/hooks/useMembers";
 import { useRolls } from "@/hooks/useRolls";
@@ -11,12 +11,21 @@ export function RollStation() {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [item, setItem] = useState("");
+  const initialized = useRef(false);
 
   useEffect(() => {
-    if (!rollResult) {
+    if (members.length > 0 && !initialized.current) {
       setSelected(new Set(members.map((m) => m.id)));
+      initialized.current = true;
     }
-  }, [members, rollResult]);
+  }, [members]);
+
+  // Reset initialization when group changes (members become empty then reload)
+  useEffect(() => {
+    if (members.length === 0) {
+      initialized.current = false;
+    }
+  }, [members]);
 
   const toggleMember = (id: string) => {
     setSelected((prev) => {

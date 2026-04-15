@@ -9,10 +9,12 @@ export function useRollHistory() {
   const [rolls, setRolls] = useState<RollSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [nextCursor, setNextCursor] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const fetchRolls = useCallback(
     async (cursor = "") => {
       if (!selectedGroup) return;
+      setError(null);
       setLoading(true);
       try {
         const params = new URLSearchParams();
@@ -26,6 +28,9 @@ export function useRollHistory() {
           setRolls(data.rolls || []);
         }
         setNextCursor(data.nextCursor || "");
+      } catch (e) {
+        console.error("Failed to fetch roll history", e);
+        setError("Failed to load roll history");
       } finally {
         setLoading(false);
       }
@@ -42,5 +47,5 @@ export function useRollHistory() {
   };
   const hasMore = nextCursor !== "";
 
-  return { rolls, loading, hasMore, loadMore, refresh: () => fetchRolls() };
+  return { rolls, loading, error, hasMore, loadMore, refresh: () => fetchRolls() };
 }
