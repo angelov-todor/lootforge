@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { Box, Card, CardContent, CircularProgress, Typography } from "@mui/material";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useStats } from "@/hooks/useStats";
+import { useMembers } from "@/hooks/useMembers";
 
 function stdDev(values: number[]): number {
   if (values.length === 0) return 0;
@@ -13,6 +14,15 @@ function stdDev(values: number[]): number {
 
 export function Statistics() {
   const { stats, loading } = useStats();
+  const { members } = useMembers();
+
+  const memberNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const m of members) {
+      map[m.id] = m.name;
+    }
+    return map;
+  }, [members]);
 
   const entries = useMemo(() => Object.entries(stats), [stats]);
   const totalWins = useMemo(() => entries.reduce((sum, [, v]) => sum + v, 0), [entries]);
@@ -22,7 +32,10 @@ export function Statistics() {
     const percentages = entries.map(([, v]) => (v / totalWins) * 100);
     return stdDev(percentages);
   }, [entries, totalWins]);
-  const chartData = useMemo(() => entries.map(([id, wins]) => ({ id, wins })), [entries]);
+  const chartData = useMemo(
+    () => entries.map(([id, wins]) => ({ name: memberNames[id] || id, wins })),
+    [entries, memberNames],
+  );
 
   if (loading) {
     return (
@@ -82,9 +95,16 @@ export function Statistics() {
           </Typography>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 8 }}>
-              <XAxis dataKey="id" tick={{ fontSize: 11 }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-              <Tooltip />
+              <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#94a3b8" }} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#1e293b",
+                  border: "1px solid #334155",
+                  borderRadius: 8,
+                  color: "#e2e8f0",
+                }}
+              />
               <Bar dataKey="wins" fill="#7c3aed" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

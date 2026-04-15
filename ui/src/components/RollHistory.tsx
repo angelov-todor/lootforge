@@ -1,6 +1,8 @@
 "use client";
+import { useMemo } from "react";
 import { Box, Button, Card, CardContent, Chip, CircularProgress, Typography } from "@mui/material";
 import { useRollHistory } from "@/hooks/useRollHistory";
+import { useMembers } from "@/hooks/useMembers";
 
 function formatDate(iso: string): string {
   try {
@@ -12,6 +14,15 @@ function formatDate(iso: string): string {
 
 export function RollHistory() {
   const { rolls, loading, hasMore, loadMore } = useRollHistory();
+  const { members } = useMembers();
+
+  const memberNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const m of members) {
+      map[m.id] = m.name;
+    }
+    return map;
+  }, [members]);
 
   if (loading && rolls.length === 0) {
     return (
@@ -45,7 +56,7 @@ export function RollHistory() {
               </Box>
               <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
                 <Typography variant="body2" color="text.secondary">
-                  Winner: <Box component="span" sx={{ color: "primary.main", fontWeight: 600 }}>{roll.winnerID}</Box>
+                  Winner: <Box component="span" sx={{ color: "primary.main", fontWeight: 600 }}>{memberNames[roll.winnerID] || roll.winnerID}</Box>
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   {formatDate(roll.createdAt)}
