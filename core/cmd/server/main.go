@@ -50,7 +50,7 @@ func main() {
 		RollTxStore: rollStore,
 	}
 
-	handler := router.New(deps)
+	handler := router.New(ctx, deps)
 
 	port := os.Getenv("PORT")
 	if port == "" {

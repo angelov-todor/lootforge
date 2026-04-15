@@ -32,7 +32,6 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		Email:       authUser.Email,
 		DisplayName: authUser.DisplayName,
 		PhotoURL:    authUser.PhotoURL,
-		CreatedAt:   now,
 		LastLoginAt: now,
 	}
 

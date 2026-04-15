@@ -71,12 +71,29 @@ func (m *mockRollStore) IncrementWinCount(_ context.Context, _ string, memberID 
 	return nil
 }
 
+// mockRollTxStore implements store.RollTxStore for tests.
+type mockRollTxStore struct {
+	rollStore   *mockRollStore
+	memberStore *mockMemberStore
+}
+
+func (m *mockRollTxStore) ExecuteRollTx(_ context.Context, groupID string, roll *models.RollSession, members []*models.Member) (string, error) {
+	id, err := m.rollStore.CreateRoll(context.Background(), groupID, roll)
+	if err != nil {
+		return "", err
+	}
+	_ = m.rollStore.IncrementWinCount(context.Background(), groupID, roll.WinnerID)
+	_ = m.memberStore.BatchUpdateMembers(context.Background(), groupID, members)
+	return id, nil
+}
+
 func setupRollHandler() (*RollHandler, *mockMemberStore, *mockRollStore, *mockRoleStore, *mockGroupStore) {
 	ms := newMockMemberStore()
 	rs := newMockRollStore()
 	roleS := newMockRoleStore()
 	gs := newMockGroupStore()
 	h := NewRollHandler(ms, rs, roleS, gs)
+	h.SetRollTxStore(&mockRollTxStore{rollStore: rs, memberStore: ms})
 	return h, ms, rs, roleS, gs
 }
 

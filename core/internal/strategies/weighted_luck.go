@@ -20,6 +20,9 @@ func (s *WeightedLuckStrategy) Roll(participants []*models.Member) (string, erro
 		if weight < 1 {
 			weight = 1
 		}
+		if weight > 1000 {
+			weight = 1000
+		}
 		for i := 0; i < weight; i++ {
 			pool = append(pool, m.ID)
 		}

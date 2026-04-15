@@ -1,6 +1,7 @@
 package middleware_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,7 +10,7 @@ import (
 )
 
 func TestRateLimiter_AllowsUnderLimit(t *testing.T) {
-	rl := middleware.NewRateLimiter(10, 10)
+	rl := middleware.NewRateLimiter(context.Background(),10, 10)
 	handler := rl.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 	}))
@@ -25,7 +26,7 @@ func TestRateLimiter_AllowsUnderLimit(t *testing.T) {
 }
 
 func TestRateLimiter_BlocksOverLimit(t *testing.T) {
-	rl := middleware.NewRateLimiter(1, 2) // 1 rps, burst of 2
+	rl := middleware.NewRateLimiter(context.Background(),1, 2) // 1 rps, burst of 2
 	handler := rl.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 	}))
@@ -53,7 +54,7 @@ func TestRateLimiter_BlocksOverLimit(t *testing.T) {
 }
 
 func TestRateLimiter_SeparateByIP(t *testing.T) {
-	rl := middleware.NewRateLimiter(1, 1)
+	rl := middleware.NewRateLimiter(context.Background(),1, 1)
 	handler := rl.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 	}))

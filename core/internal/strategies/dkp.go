@@ -40,5 +40,8 @@ func (s *DKPStrategy) Roll(participants []*models.Member) (string, error) {
 
 func (s *DKPStrategy) AdjustAfterRoll(winner *models.Member, losers []*models.Member) error {
 	winner.Points -= s.WinCost
+	if winner.Points < 0 {
+		winner.Points = 0
+	}
 	return nil
 }

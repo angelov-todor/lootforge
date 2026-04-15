@@ -95,7 +95,7 @@ func (s *FirestoreRollStore) GetRollStats(ctx context.Context, groupID string) (
 }
 
 func (s *FirestoreRollStore) getRollStatsLegacy(ctx context.Context, groupID string) (map[string]int, error) {
-	docs, err := s.rollsCol(groupID).Documents(ctx).GetAll()
+	docs, err := s.rollsCol(groupID).OrderBy("createdAt", firestore.Desc).Limit(500).Documents(ctx).GetAll()
 	if err != nil {
 		return nil, err
 	}

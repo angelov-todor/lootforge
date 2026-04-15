@@ -85,6 +85,10 @@ func (h *RollHandler) ExecuteRoll(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, 400, "participantIDs must not be empty")
 		return
 	}
+	if len(req.ParticipantIDs) > 100 {
+		httputil.WriteError(w, 400, "too many participants (max 100)")
+		return
+	}
 
 	// 4. Load group for strategy config
 	group, err := h.groupStore.GetGroup(r.Context(), gid)
@@ -159,32 +163,13 @@ func (h *RollHandler) ExecuteRoll(w http.ResponseWriter, r *http.Request) {
 
 	allAdjusted := append([]*models.Member{winner}, losers...)
 
-	// Use transactional store if available for atomic persistence
-	if h.rollTxStore != nil {
-		sessionID, err := h.rollTxStore.ExecuteRollTx(r.Context(), gid, session, allAdjusted)
-		if err != nil {
-			httputil.WriteError(w, 500, "failed to persist roll")
-			return
-		}
-		session.ID = sessionID
-	} else {
-		sessionID, err := h.rollStore.CreateRoll(r.Context(), gid, session)
-		if err != nil {
-			httputil.WriteError(w, 500, "failed to save roll session")
-			return
-		}
-		session.ID = sessionID
-
-		if err := h.rollStore.IncrementWinCount(r.Context(), gid, winnerID); err != nil {
-			httputil.WriteError(w, 500, "failed to update stats")
-			return
-		}
-
-		if err := h.memberStore.BatchUpdateMembers(r.Context(), gid, allAdjusted); err != nil {
-			httputil.WriteError(w, 500, "failed to persist member updates")
-			return
-		}
+	// Persist roll atomically via transactional store
+	sessionID, err := h.rollTxStore.ExecuteRollTx(r.Context(), gid, session, allAdjusted)
+	if err != nil {
+		httputil.WriteError(w, 500, "failed to persist roll")
+		return
 	}
+	session.ID = sessionID
 
 	// 12. Return response
 	httputil.WriteJSON(w, 200, RollResponse{
@@ -227,6 +212,9 @@ func (h *RollHandler) ListRolls(w http.ResponseWriter, r *http.Request) {
 	}
 	if limitStr := q.Get("limit"); limitStr != "" {
 		if n, err := strconv.Atoi(limitStr); err == nil && n > 0 {
+			if n > 100 {
+				n = 100
+			}
 			opts.Limit = n
 		}
 	}

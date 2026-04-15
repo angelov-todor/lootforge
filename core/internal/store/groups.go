@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -48,14 +49,30 @@ func (s *FirestoreGroupStore) ListGroupsForUser(ctx context.Context, userID stri
 	if err != nil {
 		return nil, err
 	}
+	if len(roleDocs) == 0 {
+		return nil, nil
+	}
+
+	refs := make([]*firestore.DocumentRef, len(roleDocs))
+	for i, doc := range roleDocs {
+		refs[i] = s.client.Collection("groups").Doc(doc.Ref.Parent.Parent.ID)
+	}
+	snapshots, err := s.client.GetAll(ctx, refs)
+	if err != nil {
+		return nil, err
+	}
+
 	var groups []*models.Group
-	for _, doc := range roleDocs {
-		groupID := doc.Ref.Parent.Parent.ID
-		group, err := s.GetGroup(ctx, groupID)
-		if err != nil {
+	for _, doc := range snapshots {
+		if !doc.Exists() {
 			continue
 		}
-		groups = append(groups, group)
+		var group models.Group
+		if err := doc.DataTo(&group); err != nil {
+			continue
+		}
+		group.ID = doc.Ref.ID
+		groups = append(groups, &group)
 	}
 	return groups, nil
 }
@@ -66,13 +83,39 @@ func (s *FirestoreGroupStore) UpdateGroup(ctx context.Context, group *models.Gro
 }
 
 func (s *FirestoreGroupStore) DeleteGroup(ctx context.Context, id string) error {
-	subcollections := []string{"members", "roles", "rolls"}
+	subcollections := []string{"members", "roles", "rolls", "meta"}
 	for _, sub := range subcollections {
-		docs, _ := s.client.Collection("groups").Doc(id).Collection(sub).Documents(ctx).GetAll()
-		for _, doc := range docs {
-			doc.Ref.Delete(ctx)
+		docs, err := s.client.Collection("groups").Doc(id).Collection(sub).Documents(ctx).GetAll()
+		if err != nil {
+			return fmt.Errorf("failed to list %s: %w", sub, err)
+		}
+		for i := 0; i < len(docs); i += 500 {
+			batch := s.client.Batch()
+			end := i + 500
+			if end > len(docs) {
+				end = len(docs)
+			}
+			for _, doc := range docs[i:end] {
+				batch.Delete(doc.Ref)
+			}
+			if _, err := batch.Commit(ctx); err != nil {
+				return fmt.Errorf("failed to delete %s batch: %w", sub, err)
+			}
 		}
 	}
-	_, err := s.client.Collection("groups").Doc(id).Delete(ctx)
+
+	// Delete invites for this group
+	inviteDocs, err := s.client.Collection("invites").Where("groupID", "==", id).Documents(ctx).GetAll()
+	if err == nil {
+		batch := s.client.Batch()
+		for _, doc := range inviteDocs {
+			batch.Delete(doc.Ref)
+		}
+		if len(inviteDocs) > 0 {
+			batch.Commit(ctx)
+		}
+	}
+
+	_, err = s.client.Collection("groups").Doc(id).Delete(ctx)
 	return err
 }

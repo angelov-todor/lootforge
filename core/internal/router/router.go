@@ -1,7 +1,9 @@
 package router
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/angelov-todor/lootforge/core/internal/auth"
 	"github.com/angelov-todor/lootforge/core/internal/handlers"
@@ -20,7 +22,7 @@ type Deps struct {
 	RollTxStore store.RollTxStore // optional; enables transactional roll persistence
 }
 
-func New(deps Deps) http.Handler {
+func New(ctx context.Context, deps Deps) http.Handler {
 	mux := http.NewServeMux()
 
 	userH := handlers.NewUserHandler(deps.UserStore)
@@ -68,6 +70,6 @@ func New(deps Deps) http.Handler {
 
 	_ = mux // mux is not directly used; all routing is via handler chain
 
-	rl := middleware.NewRateLimiter(20, 40) // 20 req/s per IP, burst 40
-	return middleware.Logging(middleware.CORS(rl.Middleware(handler)))
+	rl := middleware.NewRateLimiter(ctx, 20, 40) // 20 req/s per IP, burst 40
+	return middleware.Logging(middleware.CORS(rl.Middleware(middleware.BodyLimit(1<<20)(middleware.Timeout(30*time.Second)(handler)))))
 }
