@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -82,6 +83,7 @@ func (h *GroupHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	groups, err := h.groupStore.ListGroupsForUser(r.Context(), authUser.UID)
 	if err != nil {
+		log.Printf("ERROR ListGroupsForUser uid=%s: %v", authUser.UID, err)
 		httputil.WriteError(w, 500, "failed to list groups")
 		return
 	}
