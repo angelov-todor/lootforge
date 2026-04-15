@@ -12,10 +12,10 @@ export function useStats() {
     if (!selectedGroup) return;
     setLoading(true);
     try {
-      const data = await api.get<Record<string, number>>(
+      const data = await api.get<{ wins: Record<string, number> }>(
         `/api/groups/${selectedGroup.id}/rolls/stats`
       );
-      setStats(data || {});
+      setStats(data?.wins || {});
     } finally {
       setLoading(false);
     }
