@@ -38,7 +38,12 @@ export function RollStation() {
     if (!rollResult) return;
     const remaining = Array.from(selected).filter((id) => id !== rollResult.winner.id);
     if (remaining.length === 0) return;
-    await executeRoll(remaining, item);
+    setSelected(new Set(remaining));
+    try {
+      await executeRoll(remaining, item);
+    } catch (e) {
+      console.error("Pass roll failed:", e);
+    }
   };
 
   const handleDone = () => {
