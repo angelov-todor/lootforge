@@ -12,6 +12,10 @@ import {
   DialogTitle,
   Fab,
   IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
   TextField,
   Typography,
   CircularProgress,
@@ -19,6 +23,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useGroup } from "@/components/GroupContext";
 import { useMembers } from "@/hooks/useMembers";
 import type { Member } from "@/types";
@@ -39,6 +44,8 @@ export function MembersPanel() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<MemberFormData>(emptyForm);
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [menuMember, setMenuMember] = useState<Member | null>(null);
 
   const strategyType = selectedGroup?.strategy.type;
 
@@ -120,17 +127,34 @@ export function MembersPanel() {
                   )}
                 </Box>
               </Box>
-              <IconButton size="small" onClick={() => openEdit(m)}>
-                <EditIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" color="error" onClick={() => handleDelete(m)}>
-                <DeleteIcon fontSize="small" />
+              <IconButton
+                onClick={(e) => { setMenuAnchor(e.currentTarget); setMenuMember(m); }}
+                sx={{ ml: 0.5 }}
+              >
+                <MoreVertIcon />
               </IconButton>
             </CardContent>
           </Card>
         ))}
       </Box>
 
+      {/* Context menu */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={() => setMenuAnchor(null)}
+      >
+        <MenuItem onClick={() => { if (menuMember) openEdit(menuMember); setMenuAnchor(null); }}>
+          <ListItemIcon><EditIcon fontSize="small" /></ListItemIcon>
+          <ListItemText>Edit</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => { if (menuMember) handleDelete(menuMember); setMenuAnchor(null); }}>
+          <ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon>
+          <ListItemText sx={{ color: "error.main" }}>Delete</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* FAB */}
       <Fab
         color="primary"
         onClick={openAdd}

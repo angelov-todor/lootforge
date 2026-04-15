@@ -46,6 +46,9 @@ func (s *WeightedLuckStrategy) Roll(participants []*models.Member) (string, erro
 
 func (s *WeightedLuckStrategy) AdjustAfterRoll(winner *models.Member, losers []*models.Member) error {
 	winner.Luck -= s.Decrement
+	if winner.Luck < 0 {
+		winner.Luck = 0
+	}
 	for _, l := range losers {
 		l.Luck += s.Increment
 	}

@@ -93,3 +93,16 @@ func TestWeightedLuck_AllZeroLuckStillWorks(t *testing.T) {
 		t.Errorf("unexpected winner: %s", winner)
 	}
 }
+
+func TestWeightedLuck_LuckFloorAtZero(t *testing.T) {
+	s := &strategies.WeightedLuckStrategy{Increment: 1, Decrement: 5}
+	winner := &models.Member{ID: "w", Luck: 2}
+	losers := []*models.Member{{ID: "l", Luck: 3}}
+	s.AdjustAfterRoll(winner, losers)
+	if winner.Luck != 0 {
+		t.Errorf("winner luck: expected 0 (floored), got %d", winner.Luck)
+	}
+	if losers[0].Luck != 4 {
+		t.Errorf("loser luck: expected 4, got %d", losers[0].Luck)
+	}
+}
