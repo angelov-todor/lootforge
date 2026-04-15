@@ -1,143 +1,191 @@
 "use client";
-import { useMemo, useState } from "react";
-import { Box, Button, IconButton, Tooltip } from "@mui/material";
+import { useState } from "react";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Fab,
+  IconButton,
+  TextField,
+  Typography,
+  CircularProgress,
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import DownloadIcon from "@mui/icons-material/Download";
-import {
-  MaterialReactTable,
-  useMaterialReactTable,
-  type MRT_ColumnDef,
-  type MRT_Row,
-} from "material-react-table";
 import { useGroup } from "@/components/GroupContext";
 import { useMembers } from "@/hooks/useMembers";
 import type { Member } from "@/types";
 
+interface MemberFormData {
+  name: string;
+  role: string;
+  luck: number;
+  priority: number;
+  points: number;
+}
+
+const emptyForm: MemberFormData = { name: "", role: "member", luck: 0, priority: 0, points: 0 };
+
 export function MembersPanel() {
   const { selectedGroup } = useGroup();
-  const { members, loading, addMember, updateMember, deleteMember, exportMembers } = useMembers();
-  const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
+  const { members, loading, addMember, updateMember, deleteMember } = useMembers();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<MemberFormData>(emptyForm);
 
   const strategyType = selectedGroup?.strategy.type;
 
-  const strategyColumn = useMemo((): MRT_ColumnDef<Member> | null => {
-    if (strategyType === "weighted_luck") {
-      return {
-        accessorKey: "luck",
-        header: "Luck",
-        muiEditTextFieldProps: { type: "number" },
-      };
-    }
-    if (strategyType === "round_robin") {
-      return {
-        accessorKey: "priority",
-        header: "Priority",
-        muiEditTextFieldProps: { type: "number" },
-      };
-    }
-    if (strategyType === "dkp") {
-      return {
-        accessorKey: "points",
-        header: "Points",
-        muiEditTextFieldProps: { type: "number" },
-      };
-    }
-    return null;
-  }, [strategyType]);
+  const strategyLabel =
+    strategyType === "weighted_luck" ? "Luck" :
+    strategyType === "round_robin" ? "Priority" :
+    strategyType === "dkp" ? "Points" : null;
 
-  const columns = useMemo<MRT_ColumnDef<Member>[]>(() => {
-    const base: MRT_ColumnDef<Member>[] = [
-      {
-        accessorKey: "name",
-        header: "Name",
-        muiEditTextFieldProps: {
-          required: true,
-          error: !!validationErrors.name,
-          helperText: validationErrors.name,
-          onFocus: () => setValidationErrors((prev) => ({ ...prev, name: undefined })),
-        },
-      },
-      {
-        accessorKey: "role",
-        header: "Role",
-        muiEditTextFieldProps: {
-          onFocus: () => setValidationErrors((prev) => ({ ...prev, role: undefined })),
-        },
-      },
-    ];
-    if (strategyColumn) base.push(strategyColumn);
-    return base;
-  }, [strategyColumn, validationErrors]);
+  const getStrategyValue = (m: Member) =>
+    strategyType === "weighted_luck" ? m.luck :
+    strategyType === "round_robin" ? m.priority :
+    strategyType === "dkp" ? m.points : null;
 
-  const handleCreate = async ({ values, table }: { values: Partial<Member>; row?: MRT_Row<Member>; table: ReturnType<typeof useMaterialReactTable<Member>> }) => {
-    if (!values.name) {
-      setValidationErrors({ name: "Name is required" });
-      return;
-    }
-    setValidationErrors({});
-    await addMember(values);
-    table.setCreatingRow(null);
+  const openAdd = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setDialogOpen(true);
   };
 
-  const handleSave = async ({ values, row, table }: { values: Member; row: MRT_Row<Member>; table: ReturnType<typeof useMaterialReactTable<Member>> }) => {
-    await updateMember({ ...row.original, ...values });
-    table.setEditingRow(null);
+  const openEdit = (m: Member) => {
+    setEditingId(m.id);
+    setForm({ name: m.name, role: m.role, luck: m.luck, priority: m.priority, points: m.points });
+    setDialogOpen(true);
   };
 
-  const table = useMaterialReactTable<Member>({
-    columns,
-    data: members,
-    state: { isLoading: loading },
-    createDisplayMode: "row",
-    editDisplayMode: "row",
-    enableEditing: true,
-    getRowId: (row) => row.id,
-    onCreatingRowSave: handleCreate,
-    onEditingRowSave: handleSave,
-    onCreatingRowCancel: () => setValidationErrors({}),
-    onEditingRowCancel: () => setValidationErrors({}),
-    renderRowActions: ({ row, table }) => (
-      <Box sx={{ display: "flex", gap: "0.5rem" }}>
-        <Tooltip title="Edit">
-          <IconButton onClick={() => table.setEditingRow(row)}>
-            <EditIcon />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Delete">
-          <IconButton
-            color="error"
-            onClick={async () => {
-              if (confirm(`Delete "${row.original.name}"?`)) {
-                await deleteMember(row.original.id);
-              }
-            }}
-          >
-            <DeleteIcon />
-          </IconButton>
-        </Tooltip>
-      </Box>
-    ),
-    renderTopToolbarCustomActions: ({ table }) => (
-      <Box sx={{ display: "flex", gap: 1 }}>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={() => table.setCreatingRow(true)}
-        >
-          Add Member
-        </Button>
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<DownloadIcon />}
-          onClick={exportMembers}
-        >
-          Export
-        </Button>
-      </Box>
-    ),
-  });
+  const handleSave = async () => {
+    if (!form.name.trim()) return;
+    if (editingId) {
+      const existing = members.find((m) => m.id === editingId);
+      if (existing) {
+        await updateMember({ ...existing, ...form });
+      }
+    } else {
+      await addMember(form);
+    }
+    setDialogOpen(false);
+  };
 
-  return <MaterialReactTable table={table} />;
+  const handleDelete = async (m: Member) => {
+    if (confirm(`Delete "${m.name}"?`)) {
+      await deleteMember(m.id);
+    }
+  };
+
+  if (loading && members.length === 0) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ px: 2, pt: 2, pb: 10 }}>
+      <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
+        Members
+      </Typography>
+
+      {members.length === 0 && (
+        <Typography color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
+          No members yet. Tap + to add one.
+        </Typography>
+      )}
+
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        {members.map((m) => (
+          <Card key={m.id} variant="outlined">
+            <CardContent sx={{ display: "flex", alignItems: "center", py: 1.5, "&:last-child": { pb: 1.5 } }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  {m.name}
+                </Typography>
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 0.5 }}>
+                  <Chip label={m.role || "member"} size="small" variant="outlined" />
+                  {strategyLabel && (
+                    <Typography variant="caption" color="text.secondary">
+                      {strategyLabel}: {getStrategyValue(m)}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+              <IconButton size="small" onClick={() => openEdit(m)}>
+                <EditIcon fontSize="small" />
+              </IconButton>
+              <IconButton size="small" color="error" onClick={() => handleDelete(m)}>
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </CardContent>
+          </Card>
+        ))}
+      </Box>
+
+      <Fab
+        color="primary"
+        onClick={openAdd}
+        sx={{ position: "fixed", bottom: 80, right: 16 }}
+      >
+        <AddIcon />
+      </Fab>
+
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>{editingId ? "Edit Member" : "Add Member"}</DialogTitle>
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: "16px !important" }}>
+          <TextField
+            label="Name"
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            required
+            autoFocus
+          />
+          <TextField
+            label="Role"
+            value={form.role}
+            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+          />
+          {strategyType === "weighted_luck" && (
+            <TextField
+              label="Luck"
+              type="number"
+              value={form.luck}
+              onChange={(e) => setForm((f) => ({ ...f, luck: Number(e.target.value) }))}
+            />
+          )}
+          {strategyType === "round_robin" && (
+            <TextField
+              label="Priority"
+              type="number"
+              value={form.priority}
+              onChange={(e) => setForm((f) => ({ ...f, priority: Number(e.target.value) }))}
+            />
+          )}
+          {strategyType === "dkp" && (
+            <TextField
+              label="Points"
+              type="number"
+              value={form.points}
+              onChange={(e) => setForm((f) => ({ ...f, points: Number(e.target.value) }))}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSave} disabled={!form.name.trim()}>
+            {editingId ? "Save" : "Add"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
 }
