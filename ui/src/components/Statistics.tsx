@@ -1,14 +1,7 @@
 "use client";
 import { useMemo } from "react";
-import { Box, CircularProgress, Divider, Paper, Typography } from "@mui/material";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { Box, Card, CardContent, CircularProgress, Typography } from "@mui/material";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useStats } from "@/hooks/useStats";
 
 function stdDev(values: number[]): number {
@@ -22,20 +15,14 @@ export function Statistics() {
   const { stats, loading } = useStats();
 
   const entries = useMemo(() => Object.entries(stats), [stats]);
-
   const totalWins = useMemo(() => entries.reduce((sum, [, v]) => sum + v, 0), [entries]);
   const uniqueWinners = entries.length;
-
   const fairness = useMemo(() => {
     if (totalWins === 0) return 0;
     const percentages = entries.map(([, v]) => (v / totalWins) * 100);
     return stdDev(percentages);
   }, [entries, totalWins]);
-
-  const chartData = useMemo(
-    () => entries.map(([id, wins]) => ({ id, wins })),
-    [entries]
-  );
+  const chartData = useMemo(() => entries.map(([id, wins]) => ({ id, wins })), [entries]);
 
   if (loading) {
     return (
@@ -45,61 +32,64 @@ export function Statistics() {
     );
   }
 
-  if (entries.length === 0) {
-    return (
-      <Typography color="text.secondary" sx={{ py: 2 }}>
-        No statistics available yet.
-      </Typography>
-    );
-  }
-
   return (
-    <Box>
-      {/* Summary */}
-      <Paper variant="outlined" sx={{ p: 2, mb: 3, display: "flex", gap: 4 }}>
-        <Box>
-          <Typography variant="overline" color="text.secondary">
-            Total Wins
-          </Typography>
-          <Typography variant="h4" sx={{ fontWeight: "bold" }}>
-            {totalWins}
-          </Typography>
-        </Box>
-        <Divider orientation="vertical" flexItem />
-        <Box>
-          <Typography variant="overline" color="text.secondary">
-            Unique Winners
-          </Typography>
-          <Typography variant="h4" sx={{ fontWeight: "bold" }}>
-            {uniqueWinners}
-          </Typography>
-        </Box>
-        <Divider orientation="vertical" flexItem />
-        <Box>
-          <Typography variant="overline" color="text.secondary">
-            Fairness (std dev %)
-          </Typography>
-          <Typography variant="h4" sx={{ fontWeight: "bold" }}>
-            {fairness.toFixed(1)}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Lower = more equal distribution
-          </Typography>
-        </Box>
-      </Paper>
-
-      {/* Bar chart */}
-      <Typography variant="subtitle1" gutterBottom>
-        Wins per Member
+    <Box sx={{ px: 2, pt: 2, pb: 4 }}>
+      <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
+        Statistics
       </Typography>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-          <XAxis dataKey="id" tick={{ fontSize: 12 }} />
-          <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-          <Tooltip />
-          <Bar dataKey="wins" fill="#7c3aed" radius={[4, 4, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
+
+      {entries.length === 0 ? (
+        <Typography color="text.secondary" sx={{ textAlign: "center", py: 4 }}>
+          No statistics available yet.
+        </Typography>
+      ) : (
+        <>
+          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1, mb: 3 }}>
+            <Card variant="outlined">
+              <CardContent sx={{ textAlign: "center", py: 1.5, "&:last-child": { pb: 1.5 } }}>
+                <Typography variant="overline" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
+                  Total Wins
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: "bold" }}>
+                  {totalWins}
+                </Typography>
+              </CardContent>
+            </Card>
+            <Card variant="outlined">
+              <CardContent sx={{ textAlign: "center", py: 1.5, "&:last-child": { pb: 1.5 } }}>
+                <Typography variant="overline" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
+                  Winners
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: "bold" }}>
+                  {uniqueWinners}
+                </Typography>
+              </CardContent>
+            </Card>
+            <Card variant="outlined">
+              <CardContent sx={{ textAlign: "center", py: 1.5, "&:last-child": { pb: 1.5 } }}>
+                <Typography variant="overline" color="text.secondary" sx={{ fontSize: "0.65rem" }}>
+                  Fairness
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: "bold" }}>
+                  {fairness.toFixed(1)}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
+
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Wins per Member
+          </Typography>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 8 }}>
+              <XAxis dataKey="id" tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Bar dataKey="wins" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </>
+      )}
     </Box>
   );
 }

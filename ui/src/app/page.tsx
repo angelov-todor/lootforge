@@ -2,9 +2,10 @@
 export const dynamic = "force-dynamic";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Button, Typography, Paper, CircularProgress } from "@mui/material";
+import { Box, Button, CircularProgress } from "@mui/material";
 import GoogleIcon from "@mui/icons-material/Google";
 import { useAuth } from "@/components/AuthProvider";
+import { Logo } from "@/components/Logo";
 
 export default function LoginPage() {
   const { user, loading, signIn } = useAuth();
@@ -18,14 +19,7 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "100vh",
-        }}
-      >
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
         <CircularProgress />
       </Box>
     );
@@ -35,30 +29,25 @@ export default function LoginPage() {
     <Box
       sx={{
         display: "flex",
+        flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
         minHeight: "100vh",
         background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
+        gap: 4,
+        px: 3,
       }}
     >
-      <Paper sx={{ p: 6, textAlign: "center", maxWidth: 400, width: "100%" }}>
-        <Typography variant="h3" gutterBottom sx={{ fontWeight: "bold", color: "primary.main" }}>
-          LootForge
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Fair loot distribution for gaming groups
-        </Typography>
-        <Button
-          variant="contained"
-          size="large"
-          fullWidth
-          startIcon={<GoogleIcon />}
-          onClick={signIn}
-          sx={{ py: 1.5 }}
-        >
-          Sign in with Google
-        </Button>
-      </Paper>
+      <Logo size="large" />
+      <Button
+        variant="contained"
+        size="large"
+        startIcon={<GoogleIcon />}
+        onClick={signIn}
+        sx={{ py: 1.5, px: 4, maxWidth: 320, width: "100%" }}
+      >
+        Sign in with Google
+      </Button>
     </Box>
   );
 }
